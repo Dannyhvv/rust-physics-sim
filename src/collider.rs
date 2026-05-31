@@ -1,5 +1,17 @@
 use crate::Vec2;
 use crate::bodies::PhysicsBox;
+fn get_corners(body: &PhysicsBox) -> Vec<Vec2> {
+    let cos = body.rot.cos();
+    let sin = body.rot.sin();
+    let hw = body.w / 2.0;
+    let hh = body.h / 2.0;
+    vec![
+        Vec2::new(-hw * cos - (-hh * sin), -hw * sin + (-hh * cos)),
+        Vec2::new(-hw * cos - (hh * sin), -hw * sin + (hh * cos)),
+        Vec2::new(hw * cos - (-hh * sin), hw * sin + (-hh * cos)),
+        Vec2::new(hw * cos - (hh * sin), hw * sin + (hh * cos)),
+    ]
+}
 // Just boxes for now (because rust is hard)
 pub fn collision_check(bodies: &mut Vec<PhysicsBox>) {
     for i in 0..bodies.len() {
@@ -7,57 +19,15 @@ pub fn collision_check(bodies: &mut Vec<PhysicsBox>) {
             if !bodies[i].can_collide || !bodies[j].can_collide {
                 continue;
             }
-            // Box i vertices
-            let i_hw = bodies[i].w / 2.0;
-            let i_hh = bodies[i].h / 2.0;
-
-            let mut i_corners: Vec<Vec2> = Vec::new();
-            i_corners.push(Vec2 {
-                x: (-i_hw * bodies[i].rot.cos()) - (-i_hh * bodies[i].rot.sin()),
-                y: (-i_hw * bodies[i].rot.sin()) + (-i_hh * bodies[i].rot.cos()),
-            });
-            i_corners.push(Vec2 {
-                x: (-i_hw * bodies[i].rot.cos()) - (i_hh * bodies[i].rot.sin()),
-                y: (-i_hw * bodies[i].rot.sin()) + (i_hh * bodies[i].rot.cos()),
-            });
-            i_corners.push(Vec2 {
-                x: (i_hw * bodies[i].rot.cos()) - (-i_hh * bodies[i].rot.sin()),
-                y: (i_hw * bodies[i].rot.sin()) + (-i_hh * bodies[i].rot.cos()),
-            });
-            i_corners.push(Vec2 {
-                x: (i_hw * bodies[i].rot.cos()) - (i_hh * bodies[i].rot.sin()),
-                y: (i_hw * bodies[i].rot.sin()) + (i_hh * bodies[i].rot.cos()),
-            });
-            for Vec2 { x, y } in i_corners.iter_mut() {
-                *x += bodies[i].pos.x;
-                *y += bodies[i].pos.y;
-            }
-
-            // Box j vertices
-            let j_hw = bodies[j].w / 2.0;
-            let j_hh = bodies[j].h / 2.0;
-
-            let mut j_corners: Vec<Vec2> = Vec::new();
-            j_corners.push(Vec2 {
-                x: (-j_hw * bodies[j].rot.cos()) - (-j_hh * bodies[j].rot.sin()),
-                y: (-j_hw * bodies[j].rot.sin()) + (-j_hh * bodies[j].rot.cos()),
-            });
-            j_corners.push(Vec2 {
-                x: (-j_hw * bodies[j].rot.cos()) - (j_hh * bodies[j].rot.sin()),
-                y: (-j_hw * bodies[j].rot.sin()) + (j_hh * bodies[j].rot.cos()),
-            });
-            j_corners.push(Vec2 {
-                x: (j_hw * bodies[j].rot.cos()) - (-j_hh * bodies[j].rot.sin()),
-                y: (j_hw * bodies[j].rot.sin()) + (-j_hh * bodies[j].rot.cos()),
-            });
-            j_corners.push(Vec2 {
-                x: (j_hw * bodies[j].rot.cos()) - (j_hh * bodies[j].rot.sin()),
-                y: (j_hw * bodies[j].rot.sin()) + (j_hh * bodies[j].rot.cos()),
-            });
-            for Vec2 { x, y } in j_corners.iter_mut() {
-                *x += bodies[j].pos.x;
-                *y += bodies[j].pos.y;
-            }
+            // Box i and j vertices
+            let i_corners: Vec<Vec2> = get_corners(&bodies[i])
+                .iter()
+                .map(|c| *c + bodies[i].pos)
+                .collect();
+            let j_corners: Vec<Vec2> = get_corners(&bodies[j])
+                .iter()
+                .map(|c| *c + bodies[j].pos)
+                .collect();
 
             fn get_dot_products(
                 axis: Vec2,
@@ -124,12 +94,19 @@ pub fn collision_check(bodies: &mut Vec<PhysicsBox>) {
             bodies[i].pos += normal * depth * (m_j / (m_i + m_j));
             bodies[j].pos -= normal * depth * (m_i / (m_j + m_i));
 
-            let contact_point = *j_corners
+            // normal points from j to i
+            let support_i = *i_corners
                 .iter()
                 .min_by(|a, b| a.dot(normal).partial_cmp(&b.dot(normal)).unwrap())
-                .unwrap();
-            let r_i: Vec2 = contact_point - bodies[i].pos;
-            let r_j: Vec2 = contact_point - bodies[j].pos;
+                .unwrap(); // deepest point of i along -normal (i.e. min projection on normal)
+            let support_j = *j_corners
+                .iter()
+                .max_by(|a, b| a.dot(normal).partial_cmp(&b.dot(normal)).unwrap())
+                .unwrap(); // deepest point of j along +normal
+
+            let contact_point = (support_i + support_j) * 0.5;
+            let r_i = contact_point - bodies[i].pos;
+            let r_j = contact_point - bodies[j].pos;
             let vel_i = bodies[i].vel;
             let vel_j = bodies[j].vel;
             let ang_vel_i = bodies[i].ang_vel;
