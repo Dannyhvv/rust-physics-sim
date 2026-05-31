@@ -6,4 +6,5 @@
 3. `cargo run build`
 4. `cargo run dev`
 
-Hold mouse button to push blocks away from cursor
+Hold left mouse button to push blocks away from cursor
+Hold Right mouse button and drag to create blocks
