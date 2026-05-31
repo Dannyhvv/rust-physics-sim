@@ -14,3 +14,13 @@ pub fn draw_body(body: &PhysicsBox) {
         },
     )
 }
+pub fn preview_body(corner1: Vec2, corner2: Vec2) {
+    draw_rectangle_lines(
+        corner1.x,
+        corner1.y,
+        corner2.x - corner1.x,
+        corner2.y - corner1.y,
+        2.0,
+        GREEN,
+    );
+}
