@@ -10,7 +10,7 @@ pub fn draw_body(body: &PhysicsBox) {
         DrawRectangleParams {
             offset: (Vec2 { x: (0.5), y: (0.5) }),
             rotation: (body.rot),
-            color: (BLUE),
+            color: body.color,
         },
     )
 }

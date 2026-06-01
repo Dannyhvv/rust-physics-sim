@@ -1,3 +1,5 @@
+use macroquad::color::Color;
+
 use crate::Vec2;
 pub struct PhysicsBox {
     pub pos: Vec2,
@@ -12,6 +14,7 @@ pub struct PhysicsBox {
     pub mass_offset: Vec2,
     pub is_static: bool,
     pub can_collide: bool,
+    pub color: Color,
 }
 
 impl PhysicsBox {
@@ -22,8 +25,10 @@ impl PhysicsBox {
         h: f32,
         m: f32,
         rot: f32,
+        res: f32,
         is_static: bool,
         can_collide: bool,
+        color: Color,
     ) -> Self {
         PhysicsBox {
             pos: Vec2::new(x, y),
@@ -34,10 +39,11 @@ impl PhysicsBox {
             rot: rot,
             ang_vel: 0.0,
             moi: (1.0 / 12.0) * m * (w * w + h * h),
-            res: 0.8,
+            res: res,
             mass_offset: Vec2::new(0.0, 0.0),
             is_static: is_static,
             can_collide: can_collide,
+            color: color,
         }
     }
 }
