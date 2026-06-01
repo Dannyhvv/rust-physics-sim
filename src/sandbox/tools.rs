@@ -90,6 +90,8 @@ pub struct DragTool {
     selected: Option<usize>,
     pub strength: f32,
     pub damping: f32,
+    pub draw_line: bool,
+    pub line_target: Vec2,
 }
 impl DragTool {
     pub fn new() -> Self {
@@ -97,6 +99,8 @@ impl DragTool {
             selected: None,
             strength: 50.0,
             damping: 15.0,
+            draw_line: false,
+            line_target: (Vec2 { x: 0.0, y: 0.0 }),
         }
     }
 
@@ -116,19 +120,18 @@ impl DragTool {
                     dt,
                 );
 
-                draw_line(
-                    mouse.x,
-                    mouse.y,
-                    bodies[index].pos.x,
-                    bodies[index].pos.y,
-                    2.0,
-                    WHITE,
-                );
+                // Update line info
+                self.draw_line = true;
+                self.line_target = Vec2 {
+                    x: bodies[index].pos.x,
+                    y: bodies[index].pos.y,
+                };
             }
         }
 
         if is_mouse_button_released(MouseButton::Left) {
             self.selected = None;
+            self.draw_line = false;
         }
     }
 }

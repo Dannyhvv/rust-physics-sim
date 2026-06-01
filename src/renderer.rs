@@ -24,3 +24,9 @@ pub fn preview_body(corner1: Vec2, corner2: Vec2) {
         GREEN,
     );
 }
+pub fn draw_mouse_line(pos: Vec2, mouse: Vec2, enabled: bool) {
+    if !enabled {
+        return;
+    };
+    draw_line(pos.x, pos.y, mouse.x, mouse.y, 2.0, WHITE);
+}

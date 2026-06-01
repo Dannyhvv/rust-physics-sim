@@ -8,7 +8,7 @@ mod renderer;
 use crate::collider::collision_check;
 mod sandbox;
 
-use crate::renderer::draw_body;
+use crate::renderer::{draw_body, draw_mouse_line};
 use crate::sandbox::tools::{ActiveTool, DragTool, RectTool};
 use crate::sandbox::ui::*;
 use macroquad::ui::*;
@@ -46,6 +46,7 @@ async fn main() {
         }
         // Draw UI
         draw_ui(&mut active_tool, &mut drag_tool, &mut rect_tool);
+        draw_mouse_line(drag_tool.line_target, mouse, drag_tool.draw_line);
 
         next_frame().await
     }
