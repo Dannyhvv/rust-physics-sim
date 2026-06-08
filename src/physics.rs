@@ -34,11 +34,7 @@ pub fn update(bodies: &mut Vec<PhysicsBox>, dt: f32) {
             continue;
         }
         body.vel *= 1.0 - (0.85 * dt);
-        body.ang_vel *= 1.0 - (2.55 * dt);
-
-        if body.ang_vel.abs() < 0.05 {
-            body.ang_vel = 0.0;
-        }
+        body.ang_vel *= 1.0 - (1.2 * dt);
 
         body.pos += body.vel * dt;
         body.rot += body.ang_vel * dt;

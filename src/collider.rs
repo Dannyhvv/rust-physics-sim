@@ -34,7 +34,7 @@ fn sat_overlap(axis: Vec2, ca: &[Vec2; 4], cb: &[Vec2; 4]) -> Option<f32> {
     }
 }
 
-fn best_face(body: &PhysicsBox, dir: Vec2) -> (Vec2, Vec2) {
+fn best_face(body: &PhysicsBox, dir: Vec2) -> (Vec2, Vec2, Vec2) {
     let xa = Vec2::new(body.rot.cos(), body.rot.sin());
     let ya = Vec2::new(-body.rot.sin(), body.rot.cos());
     let hw = body.w / 2.0;
@@ -48,11 +48,11 @@ fn best_face(body: &PhysicsBox, dir: Vec2) -> (Vec2, Vec2) {
         (-ya, p + xa * hw - ya * hh, p - xa * hw - ya * hh),
     ];
 
-    let (_, v0, v1) = *faces
+    let &(face_normal, v0, v1) = faces
         .iter()
         .max_by(|(n1, _, _), (n2, _, _)| n1.dot(dir).partial_cmp(&n2.dot(dir)).unwrap())
         .unwrap();
-    (v0, v1)
+    (v0, v1, face_normal)
 }
 
 fn clip_segment(a: Vec2, b: Vec2, plane_pt: Vec2, inward_normal: Vec2) -> Option<(Vec2, Vec2)> {
@@ -157,10 +157,10 @@ pub fn collision_check(bodies: &mut Vec<PhysicsBox>) {
                 normal = -normal;
             }
 
-            let (ref_v0, ref_v1) = best_face(&bodies[j], normal);
-            let (inc_v0, inc_v1) = best_face(&bodies[i], -normal);
+            let (ref_v0, ref_v1, ref_face_normal) = best_face(&bodies[j], normal);
+            let (inc_v0, inc_v1, _) = best_face(&bodies[i], -normal);
 
-            let contacts = contact_manifold(ref_v0, ref_v1, normal, inc_v0, inc_v1);
+            let contacts = contact_manifold(ref_v0, ref_v1, ref_face_normal, inc_v0, inc_v1);
 
             let contact_point = if !contacts.is_empty() {
                 contacts.iter().fold(Vec2::ZERO, |acc, &p| acc + p) / contacts.len() as f32
@@ -230,7 +230,7 @@ pub fn collision_check(bodies: &mut Vec<PhysicsBox>) {
                 let r_i_cross_n = r_i.x * normal.y - r_i.y * normal.x;
                 let r_j_cross_n = r_j.x * normal.y - r_j.y * normal.x;
 
-                let e = (bodies[i].res + bodies[j].res) / 2.0;
+                let e = bodies[i].res.min(bodies[j].res);
 
                 let impulse = -(1.0 + e) * v_rel_n
                     / (im_i
