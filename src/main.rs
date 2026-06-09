@@ -1,24 +1,30 @@
 use macroquad::prelude::*;
 mod bodies;
-use bodies::PhysicsBox;
+use bodies::Body;
 mod collider;
 mod physics;
-use physics::update;
+use physics::*;
 mod renderer;
 use crate::collider::collision_check;
 mod sandbox;
 
 use crate::renderer::{draw_body, draw_mouse_line};
-use crate::sandbox::tools::{ActiveTool, DragTool, RectTool};
+use crate::sandbox::tools::{ActiveTool, BallTool, DragTool, RectTool};
 use crate::sandbox::ui::*;
 use macroquad::ui::*;
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let mut bodies: Vec<PhysicsBox> = Vec::new();
+    let mut world = World {
+        gravity: vec2(0.0, 500.0),
+        paused: false,
+        solver_iterations: 8,
+    };
+    let mut bodies: Vec<Body> = Vec::new();
     let mut active_tool = ActiveTool::Drag;
     let mut drag_tool = DragTool::new();
     let mut rect_tool = RectTool::new();
+    let mut ball_tool = BallTool::new();
 
     loop {
         clear_background(BLACK);
@@ -36,16 +42,40 @@ async fn main() {
                 ActiveTool::Rectangle => {
                     rect_tool.update(mouse, &mut bodies);
                 }
+                ActiveTool::Circle => {
+                    ball_tool.update(mouse, &mut bodies);
+                }
             }
         }
 
-        update(&mut bodies, dt);
-        collision_check(&mut bodies);
+        if !world.paused {
+            for body in bodies.iter_mut() {
+                physics::apply_gravity(body, world.gravity);
+            }
+
+            update(&mut bodies, dt);
+
+            for _ in 0..world.solver_iterations {
+                collision_check(&mut bodies);
+            }
+        }
         for body in bodies.iter() {
             draw_body(body);
         }
         // Draw UI
-        draw_ui(&mut active_tool, &mut drag_tool, &mut rect_tool);
+        let reset_sim = draw_ui(
+            &mut world,
+            &mut active_tool,
+            &mut drag_tool,
+            &mut rect_tool,
+            &mut ball_tool,
+            dt,
+        );
+
+        if reset_sim {
+            bodies.clear();
+        }
+
         draw_mouse_line(drag_tool.line_target, mouse, drag_tool.draw_line);
 
         next_frame().await

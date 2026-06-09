@@ -1,42 +1,78 @@
-use crate::{Vec2, bodies::PhysicsBox};
+use crate::{Vec2, bodies::Body};
 
-pub fn apply_force(body: &mut PhysicsBox, force: Vec2, dt: f32) {
-    let a = force / body.m;
-    body.vel += a * dt;
+pub struct World {
+    pub gravity: Vec2,
+    pub paused: bool,
+    pub solver_iterations: u32,
 }
 
-pub fn apply_force_from_point(
-    body: &mut PhysicsBox,
-    x_pos: f32,
-    y_pos: f32,
-    strength: f32,
-    damping: f32,
-    dt: f32,
-) {
-    let temp = Vec2::new(body.pos.x - x_pos, body.pos.y - y_pos);
+pub fn apply_force(body: &mut Body, force: Vec2) {
+    body.force += force;
+}
 
-    let distance = temp.length();
+pub fn apply_torque(body: &mut Body, torque: f32) {
+    body.torque += torque;
+}
+
+pub fn apply_force_at_point(body: &mut Body, force: Vec2, point: Vec2) {
+    body.force += force;
+
+    let r = point - body.pos;
+
+    let torque = r.x * force.y - r.y * force.x;
+
+    body.torque += torque;
+}
+
+pub fn apply_gravity(body: &mut Body, gravity: Vec2) {
+    if body.is_static {
+        return;
+    }
+
+    body.force += gravity * body.m;
+}
+
+pub fn apply_spring_to_point(body: &mut Body, point: Vec2, strength: f32, damping: f32) {
+    let offset = body.pos - point;
+
+    let distance = offset.length();
+
     if distance < f32::EPSILON {
         return;
     }
-    let direction = temp / distance;
 
-    let force = direction * -distance * strength;
+    let direction = offset / distance;
 
-    let damping = body.vel * -damping;
+    let spring_force = direction * (-distance * strength);
 
-    apply_force(body, force + damping, dt);
+    let damping_force = body.vel * -damping;
+
+    apply_force(body, spring_force + damping_force);
 }
 
-pub fn update(bodies: &mut Vec<PhysicsBox>, dt: f32) {
+pub fn apply_damping(body: &mut Body, dt: f32) {
+    body.vel *= 1.0 - body.linear_damping * dt;
+    body.ang_vel *= 1.0 - body.angular_damping * dt;
+}
+
+pub fn update(bodies: &mut [Body], dt: f32) {
     for body in bodies.iter_mut() {
         if body.is_static {
             continue;
         }
-        body.vel *= 1.0 - (0.85 * dt);
-        body.ang_vel *= 1.0 - (1.2 * dt);
+
+        let acceleration = body.force / body.m;
+        let angular_acceleration = body.torque / body.moi;
+
+        body.vel += acceleration * dt;
+        body.ang_vel += angular_acceleration * dt;
+
+        apply_damping(body, dt);
 
         body.pos += body.vel * dt;
         body.rot += body.ang_vel * dt;
+
+        body.force = Vec2::ZERO;
+        body.torque = 0.0;
     }
 }

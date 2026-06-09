@@ -1,7 +1,7 @@
 use crate::Vec2;
-use crate::bodies::PhysicsBox;
-use crate::physics::apply_force_from_point;
-use crate::renderer::preview_body;
+use crate::bodies::Body;
+use crate::physics::*;
+use crate::renderer::*;
 use ::rand::prelude::IndexedRandom;
 use ::rand::rng;
 use macroquad::color::*;
@@ -10,6 +10,7 @@ use macroquad::prelude::*;
 pub enum ActiveTool {
     Drag,
     Rectangle,
+    Circle,
 }
 
 pub struct RectTool {
@@ -38,7 +39,7 @@ impl RectTool {
         }
     }
 
-    pub fn update(&mut self, mouse: Vec2, bodies: &mut Vec<PhysicsBox>) {
+    pub fn update(&mut self, mouse: Vec2, bodies: &mut Vec<Body>) {
         // Preview rectangle position with outline
         if is_mouse_button_pressed(MouseButton::Left) {
             self.drag_start = Some(mouse);
@@ -46,22 +47,25 @@ impl RectTool {
 
         if is_mouse_button_down(MouseButton::Left) {
             if let Some(start) = self.drag_start {
-                preview_body(start, mouse);
+                preview_box(start, mouse);
             }
         }
 
         if is_mouse_button_released(MouseButton::Left) {
             if let Some(start) = self.drag_start {
-                bodies.push(self.create_body(start, mouse));
+                bodies.push(self.create_box(start, mouse));
             }
 
             self.drag_start = None;
         }
     }
 
-    pub fn create_body(&self, corner1: Vec2, corner2: Vec2) -> PhysicsBox {
-        let w = corner2.x - corner1.x;
-        let h = corner2.y - corner1.y;
+    pub fn create_box(&self, corner1: Vec2, corner2: Vec2) -> Body {
+        let min_x = corner1.x.min(corner2.x);
+        let min_y = corner1.y.min(corner2.y);
+
+        let w = (corner2.x - corner1.x).abs();
+        let h = (corner2.y - corner1.y).abs();
 
         let colors = [RED, GREEN, BLUE, PURPLE, ORANGE];
 
@@ -71,11 +75,78 @@ impl RectTool {
             self.color
         };
 
-        PhysicsBox::new(
-            corner1.x + w / 2.0,
-            corner1.y + h / 2.0,
+        Body::new_box(
+            min_x + w / 2.0,
+            min_y + h / 2.0,
             w,
             h,
+            self.density,
+            0.0,
+            self.restitution,
+            self.is_static,
+            self.can_collide,
+            color,
+        )
+    }
+}
+pub struct BallTool {
+    pub drag_start: Option<Vec2>,
+
+    pub density: f32,
+    pub restitution: f32,
+    pub random_colors: bool,
+    pub color: Color,
+    pub is_static: bool,
+    pub can_collide: bool,
+}
+impl BallTool {
+    pub fn new() -> Self {
+        Self {
+            drag_start: None,
+
+            density: 20.0,
+            restitution: 0.8,
+            random_colors: true,
+            color: WHITE,
+            is_static: false,
+            can_collide: true,
+        }
+    }
+    pub fn update(&mut self, mouse: Vec2, bodies: &mut Vec<Body>) {
+        if is_mouse_button_pressed(MouseButton::Left) {
+            self.drag_start = Some(mouse);
+        }
+
+        if is_mouse_button_down(MouseButton::Left) {
+            if let Some(start) = self.drag_start {
+                preview_ball(start, mouse);
+            }
+        }
+
+        if is_mouse_button_released(MouseButton::Left) {
+            if let Some(start) = self.drag_start {
+                bodies.push(self.create_ball(start, mouse));
+            }
+
+            self.drag_start = None;
+        }
+    }
+
+    pub fn create_ball(&self, center: Vec2, mouse: Vec2) -> Body {
+        let r = center.distance(mouse);
+
+        let colors = [RED, GREEN, BLUE, PURPLE, ORANGE];
+
+        let color = if self.random_colors {
+            *colors.choose(&mut rng()).unwrap()
+        } else {
+            self.color
+        };
+
+        Body::new_ball(
+            center.x,
+            center.y,
+            r,
             self.density,
             0.0,
             self.restitution,
@@ -104,21 +175,14 @@ impl DragTool {
         }
     }
 
-    pub fn update(&mut self, mouse: Vec2, bodies: &mut Vec<PhysicsBox>, dt: f32) {
+    pub fn update(&mut self, mouse: Vec2, bodies: &mut Vec<Body>, dt: f32) {
         if is_mouse_button_pressed(MouseButton::Left) {
             self.selected = get_nearest_body(mouse, bodies);
         }
 
         if is_mouse_button_down(MouseButton::Left) {
             if let Some(index) = self.selected {
-                apply_force_from_point(
-                    &mut bodies[index],
-                    mouse.x,
-                    mouse.y,
-                    self.strength,
-                    self.damping,
-                    dt,
-                );
+                apply_spring_to_point(&mut bodies[index], mouse, self.strength, self.damping);
 
                 // Update line info
                 self.draw_line = true;
@@ -137,7 +201,7 @@ impl DragTool {
 }
 
 // Helper functions
-pub fn get_nearest_body(mouse: Vec2, bodies: &[PhysicsBox]) -> Option<usize> {
+pub fn get_nearest_body(mouse: Vec2, bodies: &[Body]) -> Option<usize> {
     if bodies.is_empty() {
         return None;
     }
