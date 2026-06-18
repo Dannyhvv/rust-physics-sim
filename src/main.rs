@@ -53,11 +53,11 @@ async fn main() {
                 physics::apply_gravity(body, world.gravity);
             }
 
-            update(&mut bodies, dt);
-
             for _ in 0..world.solver_iterations {
                 collision_check(&mut bodies);
             }
+
+            update(&mut bodies, dt);
         }
         for body in bodies.iter() {
             draw_body(body);
@@ -73,6 +73,7 @@ async fn main() {
         );
 
         if reset_sim {
+            drag_tool.selected = None;
             bodies.clear();
         }
 

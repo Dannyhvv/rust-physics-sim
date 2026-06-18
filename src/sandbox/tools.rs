@@ -158,7 +158,7 @@ impl BallTool {
 }
 
 pub struct DragTool {
-    selected: Option<usize>,
+    pub selected: Option<usize>,
     pub strength: f32,
     pub damping: f32,
     pub draw_line: bool,
