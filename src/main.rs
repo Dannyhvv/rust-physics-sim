@@ -4,6 +4,8 @@ use bodies::Body;
 mod collider;
 mod physics;
 use physics::*;
+mod camera;
+use crate::camera::*;
 mod renderer;
 use crate::collider::collision_check;
 mod sandbox;
@@ -20,6 +22,12 @@ async fn main() {
         paused: false,
         solver_iterations: 8,
     };
+    let mut camera_controller = CameraController {
+        position: vec2(0.0, 0.0),
+        zoom: 1.0,
+        last_mouse_pos: Vec2 { x: 0.0, y: 0.0 },
+    };
+
     let mut bodies: Vec<Body> = Vec::new();
     let mut active_tool = ActiveTool::Drag;
     let mut drag_tool = DragTool::new();
@@ -30,9 +38,32 @@ async fn main() {
         clear_background(BLACK);
         let dt = get_frame_time();
 
-        let mouse = vec2(mouse_position().0, mouse_position().1);
+        let camera = camera_controller.build_camera();
 
-        let mouse_over_ui = root_ui().is_mouse_over(mouse);
+        let mouse_screen: Vec2 = mouse_position().into();
+        let mouse_over_ui = root_ui().is_mouse_over(mouse_screen);
+
+        move_camera(&mut camera_controller, dt);
+        zoom_camera(&mut camera_controller);
+        drag_camera(&mut camera_controller, &camera);
+
+        if !world.paused {
+            for body in bodies.iter_mut() {
+                physics::apply_gravity(body, world.gravity);
+            }
+
+            for _ in 0..world.solver_iterations {
+                collision_check(&mut bodies);
+            }
+
+            update(&mut bodies, dt);
+        }
+
+        let camera = camera_controller.build_camera();
+        set_camera(&camera);
+
+        let mouse = camera.screen_to_world(mouse_screen);
+
         if !mouse_over_ui {
             match active_tool {
                 ActiveTool::Drag => {
@@ -48,20 +79,14 @@ async fn main() {
             }
         }
 
-        if !world.paused {
-            for body in bodies.iter_mut() {
-                physics::apply_gravity(body, world.gravity);
-            }
-
-            for _ in 0..world.solver_iterations {
-                collision_check(&mut bodies);
-            }
-
-            update(&mut bodies, dt);
-        }
         for body in bodies.iter() {
             draw_body(body);
         }
+
+        draw_mouse_line(drag_tool.line_target, mouse, drag_tool.draw_line);
+
+        set_default_camera();
+
         // Draw UI
         let reset_sim = draw_ui(
             &mut world,
@@ -76,8 +101,6 @@ async fn main() {
             drag_tool.selected = None;
             bodies.clear();
         }
-
-        draw_mouse_line(drag_tool.line_target, mouse, drag_tool.draw_line);
 
         next_frame().await
     }
