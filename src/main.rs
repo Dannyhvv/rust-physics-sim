@@ -18,7 +18,7 @@ use macroquad::ui::*;
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut world = World {
-        gravity: vec2(0.0, 500.0),
+        gravity: vec2(0.0, -500.0),
         paused: false,
         solver_iterations: 8,
     };

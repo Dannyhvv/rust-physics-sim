@@ -18,11 +18,11 @@ pub fn move_camera(camera: &mut CameraController, dt: f32) {
     let speed = 500.0;
 
     if is_key_down(KeyCode::W) {
-        camera.position.y -= speed * dt;
+        camera.position.y += speed * dt;
     }
 
     if is_key_down(KeyCode::S) {
-        camera.position.y += speed * dt;
+        camera.position.y -= speed * dt;
     }
 
     if is_key_down(KeyCode::A) {
