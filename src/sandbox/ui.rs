@@ -79,9 +79,11 @@ pub fn draw_ui(
                 ActiveTool::Rectangle => {
                     ui.label(None, "Rectangle Tool");
 
-                    ui.slider(hash!(), "Density", 1.0..100.0, &mut rect_tool.density);
+                    ui.slider(hash!(), "Density", 0.01..10.0, &mut rect_tool.density);
 
                     ui.slider(hash!(), "Restitution", 0.0..1.0, &mut rect_tool.restitution);
+
+                    ui.slider(hash!(), "Friction", 0.0..1.0, &mut rect_tool.friction);
 
                     ui.checkbox(hash!(), "Static", &mut rect_tool.is_static);
 
@@ -93,9 +95,11 @@ pub fn draw_ui(
                 ActiveTool::Circle => {
                     ui.label(None, "Circle Tool");
 
-                    ui.slider(hash!(), "Density", 1.0..100.0, &mut ball_tool.density);
+                    ui.slider(hash!(), "Density", 0.01..10.0, &mut ball_tool.density);
 
                     ui.slider(hash!(), "Restitution", 0.0..1.0, &mut ball_tool.restitution);
+
+                    ui.slider(hash!(), "Friction", 0.0..1.0, &mut ball_tool.friction);
 
                     ui.checkbox(hash!(), "Static", &mut ball_tool.is_static);
 

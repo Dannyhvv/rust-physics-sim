@@ -71,10 +71,10 @@ async fn main() {
                 }
 
                 ActiveTool::Rectangle => {
-                    rect_tool.update(mouse, &mut bodies);
+                    rect_tool.update(mouse, &mut bodies, &camera);
                 }
                 ActiveTool::Circle => {
-                    ball_tool.update(mouse, &mut bodies);
+                    ball_tool.update(mouse, &mut bodies, &camera);
                 }
             }
         }
@@ -83,7 +83,7 @@ async fn main() {
             draw_body(body);
         }
 
-        draw_mouse_line(drag_tool.line_target, mouse, drag_tool.draw_line);
+        draw_mouse_line(drag_tool.line_target, mouse, drag_tool.draw_line, &camera);
 
         set_default_camera();
 

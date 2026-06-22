@@ -23,23 +23,37 @@ pub fn draw_body(body: &Body) {
     }
 }
 
-pub fn preview_box(corner1: Vec2, corner2: Vec2) {
+pub fn preview_box(corner1: Vec2, corner2: Vec2, camera: &Camera2D) {
+    let s1 = camera.world_to_screen(corner1);
+    let s2 = camera.world_to_screen(corner2);
+    set_default_camera();
     draw_rectangle_lines(
-        corner1.x,
-        corner1.y,
-        corner2.x - corner1.x,
-        corner2.y - corner1.y,
+        s1.x.min(s2.x),
+        s1.y.min(s2.y),
+        (s2.x - s1.x).abs(),
+        (s2.y - s1.y).abs(),
         2.0,
         GREEN,
     );
+    set_camera(camera);
 }
-pub fn preview_ball(center: Vec2, mouse: Vec2) {
-    let r = center.distance(mouse);
-    draw_poly_lines(center.x, center.y, 255, r, 0., 2.0, GREEN);
+
+pub fn preview_ball(center: Vec2, mouse: Vec2, camera: &Camera2D) {
+    let sc = camera.world_to_screen(center);
+    let sm = camera.world_to_screen(mouse);
+    let r = sc.distance(sm);
+    set_default_camera();
+    draw_poly_lines(sc.x, sc.y, 64, r, 0., 2.0, GREEN);
+    set_camera(camera);
 }
-pub fn draw_mouse_line(pos: Vec2, mouse: Vec2, enabled: bool) {
+
+pub fn draw_mouse_line(pos: Vec2, mouse: Vec2, enabled: bool, camera: &Camera2D) {
     if !enabled {
         return;
-    };
-    draw_line(pos.x, pos.y, mouse.x, mouse.y, 2.0, WHITE);
+    }
+    let sp = camera.world_to_screen(pos);
+    let sm = camera.world_to_screen(mouse);
+    set_default_camera();
+    draw_line(sp.x, sp.y, sm.x, sm.y, 2.0, WHITE);
+    set_camera(camera);
 }

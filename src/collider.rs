@@ -322,6 +322,46 @@ fn apply_impulse(bodies: &mut Vec<Body>, i: usize, j: usize, col: &Collision) {
         bodies[j].vel -= normal * impulse * im_j;
         bodies[j].ang_vel -= impulse * r_j_cross_n * imoi_j;
     }
+
+    let vel_i2 = if bodies[i].is_static { Vec2::ZERO } else { bodies[i].vel };
+    let vel_j2 = if bodies[j].is_static { Vec2::ZERO } else { bodies[j].vel };
+    let ang_i2 = if bodies[i].is_static { 0.0 } else { bodies[i].ang_vel };
+    let ang_j2 = if bodies[j].is_static { 0.0 } else { bodies[j].ang_vel };
+
+    let vcp_i2 = vel_i2 + Vec2::new(-ang_i2 * r_i.y, ang_i2 * r_i.x);
+    let vcp_j2 = vel_j2 + Vec2::new(-ang_j2 * r_j.y, ang_j2 * r_j.x);
+    let v_rel2 = vcp_i2 - vcp_j2;
+
+    let tangent = {
+        let vt = v_rel2 - normal * v_rel2.dot(normal);
+        let len = vt.length();
+        if len < f32::EPSILON { return; }
+        vt / len
+    };
+
+    let v_rel_t = v_rel2.dot(tangent);
+
+    let r_i_cross_t = r_i.x * tangent.y - r_i.y * tangent.x;
+    let r_j_cross_t = r_j.x * tangent.y - r_j.y * tangent.x;
+    let denom_t = im_i + im_j
+        + r_i_cross_t * r_i_cross_t * imoi_i
+        + r_j_cross_t * r_j_cross_t * imoi_j;
+
+    if denom_t < f32::EPSILON { return; }
+
+    let jt_raw = -v_rel_t / denom_t;
+
+    let mu = (bodies[i].friction * bodies[j].friction).sqrt();
+    let jt = jt_raw.clamp(-mu * impulse.abs(), mu * impulse.abs());
+
+    if !bodies[i].is_static {
+        bodies[i].vel += tangent * jt * im_i;
+        bodies[i].ang_vel += jt * r_i_cross_t * imoi_i;
+    }
+    if !bodies[j].is_static {
+        bodies[j].vel -= tangent * jt * im_j;
+        bodies[j].ang_vel -= jt * r_j_cross_t * imoi_j;
+    }
 }
 
 fn apply_position_correction(bodies: &mut Vec<Body>, i: usize, j: usize, col: &Collision) {

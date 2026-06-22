@@ -4,6 +4,7 @@ use crate::physics::*;
 use crate::renderer::*;
 use ::rand::prelude::IndexedRandom;
 use ::rand::rng;
+use macroquad::camera::Camera2D;
 use macroquad::color::*;
 use macroquad::prelude::*;
 
@@ -19,6 +20,7 @@ pub struct RectTool {
     // settings
     pub density: f32,
     pub restitution: f32,
+    pub friction: f32,
     pub random_colors: bool,
     pub color: Color,
     pub is_static: bool,
@@ -30,8 +32,9 @@ impl RectTool {
         Self {
             drag_start: None,
 
-            density: 20.0,
+            density: 1.0,
             restitution: 0.8,
+            friction: 0.5,
             random_colors: true,
             color: WHITE,
             is_static: false,
@@ -39,7 +42,7 @@ impl RectTool {
         }
     }
 
-    pub fn update(&mut self, mouse: Vec2, bodies: &mut Vec<Body>) {
+    pub fn update(&mut self, mouse: Vec2, bodies: &mut Vec<Body>, camera: &Camera2D) {
         // Preview rectangle position with outline
         if is_mouse_button_pressed(MouseButton::Left) {
             self.drag_start = Some(mouse);
@@ -47,7 +50,7 @@ impl RectTool {
 
         if is_mouse_button_down(MouseButton::Left) {
             if let Some(start) = self.drag_start {
-                preview_box(start, mouse);
+                preview_box(start, mouse, camera);
             }
         }
 
@@ -75,14 +78,18 @@ impl RectTool {
             self.color
         };
 
+        let area = w * h;
+        let mass = self.density * area;
+
         Body::new_box(
             min_x + w / 2.0,
             min_y + h / 2.0,
             w,
             h,
-            self.density,
+            mass,
             0.0,
             self.restitution,
+            self.friction,
             self.is_static,
             self.can_collide,
             color,
@@ -94,6 +101,7 @@ pub struct BallTool {
 
     pub density: f32,
     pub restitution: f32,
+    pub friction: f32,
     pub random_colors: bool,
     pub color: Color,
     pub is_static: bool,
@@ -104,22 +112,23 @@ impl BallTool {
         Self {
             drag_start: None,
 
-            density: 20.0,
+            density: 1.0,
             restitution: 0.8,
+            friction: 0.5,
             random_colors: true,
             color: WHITE,
             is_static: false,
             can_collide: true,
         }
     }
-    pub fn update(&mut self, mouse: Vec2, bodies: &mut Vec<Body>) {
+    pub fn update(&mut self, mouse: Vec2, bodies: &mut Vec<Body>, camera: &Camera2D) {
         if is_mouse_button_pressed(MouseButton::Left) {
             self.drag_start = Some(mouse);
         }
 
         if is_mouse_button_down(MouseButton::Left) {
             if let Some(start) = self.drag_start {
-                preview_ball(start, mouse);
+                preview_ball(start, mouse, camera);
             }
         }
 
@@ -143,13 +152,17 @@ impl BallTool {
             self.color
         };
 
+        let area = std::f32::consts::PI * r * r;
+        let mass = self.density * area;
+
         Body::new_ball(
             center.x,
             center.y,
             r,
-            self.density,
+            mass,
             0.0,
             self.restitution,
+            self.friction,
             self.is_static,
             self.can_collide,
             color,

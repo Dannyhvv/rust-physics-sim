@@ -43,9 +43,9 @@ pub fn apply_spring_to_point(body: &mut Body, point: Vec2, strength: f32, dampin
 
     let direction = offset / distance;
 
-    let spring_force = direction * (-distance * strength);
+    let spring_force = direction * (-distance * strength * body.m);
 
-    let damping_force = body.vel * -damping;
+    let damping_force = body.vel * (-damping * body.m);
 
     apply_force(body, spring_force + damping_force);
 }
